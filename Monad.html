@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monad | The Parallel EVM Layer 1</title>
+    
+    <!-- Fonts: Plus Jakarta Sans (Matches Monad's Tech Vibe) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (via CDN for immediate styling) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js & GSAP (Animation Libraries) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <!-- Monad Custom Theme Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        monad: {
+                            primary: '#836EF9', // Monad Purple
+                            dark: '#200052',
+                            bg: '#0E0E12',
+                            surface: '#1C1C26'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0E0E12;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0E0E12; }
+        ::-webkit-scrollbar-thumb { background: #836EF9; border-radius: 4px; }
+
+        /* Glassmorphism Utilities */
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .glass:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(131, 110, 249, 0.4);
+            box-shadow: 0 0 30px rgba(131, 110, 249, 0.15);
+        }
+
+        /* Gradient Text */
+        .text-gradient {
+            background: linear-gradient(135deg, #FFFFFF 0%, #836EF9 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Glow Effects */
+        .purple-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(131,110,249,0.15) 0%, rgba(0,0,0,0) 70%);
+            pointer-events: none;
+            z-index: 0;
+            border-radius: 50%;
+        }
+
+        /* Loader */
+        #loader {
+            position: fixed;
+            inset: 0;
+            background: #0E0E12;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-monad-primary selection:text-white">
+
+    <!-- Loading Screen -->
+    <div id="loader">
+        <div class="text-monad-primary text-4xl font-bold animate-pulse tracking-tighter">MONAD</div>
+    </div>
+
+    <!-- 3D Canvas Background -->
+    <div id="canvas-container" class="fixed top-0 left-0 w-full h-full z-0 opacity-60 pointer-events-none"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 px-6 py-4 transition-all duration-300" id="navbar">
+        <div class="max-w-7xl mx-auto flex justify-between items-center glass rounded-full px-6 py-3">
+            <div class="flex items-center gap-3">
+                <!-- SVG Logo Representation -->
+                <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 0L37.32 10V30L20 40L2.68 30V10L20 0Z" fill="#836EF9" fill-opacity="0.2"/>
+                    <path d="M20 4L33.856 12V28L20 36L6.144 28V12L20 4Z" stroke="#836EF9" stroke-width="2"/>
+                    <path d="M20 10L29 15V25L20 30L11 25V15L20 10Z" fill="#836EF9"/>
+                </svg>
+                <span class="font-bold text-xl tracking-tight">MONAD</span>
+            </div>
+            <div class="hidden md:flex gap-8 text-sm font-medium text-gray-400">
+                <a href="#tech" class="hover:text-white transition-colors">Technology</a>
+                <a href="#stats" class="hover:text-white transition-colors">Performance</a>
+                <a href="#ecosystem" class="hover:text-white transition-colors">Ecosystem</a>
+            </div>
+            <button class="bg-white text-black px-6 py-2 rounded-full text-sm font-bold hover:bg-monad-primary hover:text-white transition-all duration-300">
+                Start Building
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative min-h-screen flex flex-col justify-center items-center text-center px-4 pt-20 z-10">
+        <div class="purple-glow top-1/4 left-1/2 transform -translate-x-1/2"></div>
+        
+        <div class="hero-anim opacity-0 translate-y-10 mb-6">
+            <span class="px-4 py-1.5 rounded-full border border-monad-primary/30 bg-monad-primary/10 text-monad-primary text-xs font-bold uppercase tracking-widest">
+                The Future of Layer 1
+            </span>
+        </div>
+
+        <h1 class="hero-anim opacity-0 translate-y-10 text-6xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter leading-none mb-6">
+            PARALLEL<br />
+            <span class="text-gradient">PERFORMANCE</span>
+        </h1>
+
+        <p class="hero-anim opacity-0 translate-y-10 text-lg md:text-2xl text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10">
+            Ethereum apps run as-is, but <span class="text-white font-semibold">1000x faster</span> and cheaper.
+            <br>Actual scalability is finally here.
+        </p>
+
+        <div class="hero-anim opacity-0 translate-y-10 flex flex-col sm:flex-row gap-4">
+            <button class="px-8 py-4 bg-monad-primary text-white rounded-full font-bold text-lg hover:scale-105 transition-transform shadow-[0_0_40px_rgba(131,110,249,0.4)]">
+                Read the Docs
+            </button>
+            <button class="px-8 py-4 glass rounded-full font-bold text-lg text-white hover:bg-white/10 transition-colors">
+                Join Discord
+            </button>
+        </div>
+
+        <!-- Scroll Indicator -->
+        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce">
+            <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section id="stats" class="py-20 z-10 relative border-y border-white/5 bg-black/20 backdrop-blur-sm">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div class="stat-card text-center p-8 glass rounded-2xl">
+                <div class="text-5xl md:text-7xl font-bold text-white mb-2 counter" data-target="10000">0</div>
+                <div class="text-monad-primary text-sm font-bold uppercase tracking-widest">TPS</div>
+                <p class="text-gray-500 text-xs mt-2">Transactions Per Second</p>
+            </div>
+            <div class="stat-card text-center p-8 glass rounded-2xl">
+                <div class="text-5xl md:text-7xl font-bold text-white mb-2">1<span class="text-4xl">s</span></div>
+                <div class="text-monad-primary text-sm font-bold uppercase tracking-widest">Finality</div>
+                <p class="text-gray-500 text-xs mt-2">Single Slot Finality</p>
+            </div>
+            <div class="stat-card text-center p-8 glass rounded-2xl">
+                <div class="text-5xl md:text-7xl font-bold text-white mb-2">$0.001</div>
+                <div class="text-monad-primary text-sm font-bold uppercase tracking-widest">Fees</div>
+                <p class="text-gray-500 text-xs mt-2">Average Cost per Tx</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="tech" class="py-32 relative z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="mb-20 text-center md:text-left">
+                <h2 class="text-4xl md:text-6xl font-bold mb-6 tracking-tight">Rebuilt from the <span class="text-monad-primary">Kernel Up</span></h2>
+                <p class="text-xl text-gray-400 max-w-2xl">
+                    We didn't just optimize. We introduced Parallel Execution to the EVM.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Card 1 -->
+                <div class="glass p-8 rounded-3xl transition-all duration-500 hover:-translate-y-2 group feature-card opacity-0 translate-y-10">
+                    <div class="w-12 h-12 bg-monad-primary/20 rounded-xl flex items-center justify-center mb-6 text-monad-primary group-hover:scale-110 transition-transform">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3">Parallel Execution</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Runs transactions at the same time, not one-by-one. Monad identifies non-overlapping transactions and processes them on multiple cores simultaneously.
+                    </p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="glass p-8 rounded-3xl transition-all duration-500 hover:-translate-y-2 group feature-card opacity-0 translate-y-10">
+                    <div class="w-12 h-12 bg-monad-primary/20 rounded-xl flex items-center justify-center mb-6 text-monad-primary group-hover:scale-110 transition-transform">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3">Superscalar Pipelining</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Like an assembly line on steroids. Different stages of transaction processing (fetch, decode, execute) happen simultaneously.
+                    </p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="glass p-8 rounded-3xl transition-all duration-500 hover:-translate-y-2 group feature-card opacity-0 translate-y-10">
+                    <div class="w-12 h-12 bg-monad-primary/20 rounded-xl flex items-center justify-center mb-6 text-monad-primary group-hover:scale-110 transition-transform">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3">Deferred Execution</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Separates transaction ordering from actual running for max speed. Consensus happens instantly, execution follows.
+                    </p>
+                </div>
+
+                 <!-- Card 4 -->
+                 <div class="glass p-8 rounded-3xl transition-all duration-500 hover:-translate-y-2 group feature-card opacity-0 translate-y-10">
+                    <div class="w-12 h-12 bg-monad-primary/20 rounded-xl flex items-center justify-center mb-6 text-monad-primary group-hover:scale-110 transition-transform">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3">MonadBFT</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Custom fast consensus achieving finality in ~1 second. The network agrees on the state almost instantly.
+                    </p>
+                </div>
+
+                 <!-- Card 5 -->
+                 <div class="glass p-8 rounded-3xl transition-all duration-500 hover:-translate-y-2 group feature-card opacity-0 translate-y-10">
+                    <div class="w-12 h-12 bg-monad-primary/20 rounded-xl flex items-center justify-center mb-6 text-monad-primary group-hover:scale-110 transition-transform">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-3">MonadDb</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        A custom database optimized from the ground up for parallel access, solving the state access bottleneck.
+                    </p>
+                </div>
+
+                <!-- Card 6: CTA -->
+                <div class="p-8 rounded-3xl bg-gradient-to-br from-monad-dark to-black border border-monad-primary/30 flex flex-col justify-center items-center text-center group feature-card opacity-0 translate-y-10">
+                    <h3 class="text-2xl font-bold mb-2">Full EVM Compatibility</h3>
+                    <p class="text-gray-400 text-sm mb-6">Use MetaMask. Use Etherscan. Deploy Solidity. Just faster.</p>
+                    <button class="px-6 py-2 bg-white text-black rounded-lg font-bold hover:bg-monad-primary hover:text-white transition-colors w-full">
+                        Migrate App
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section class="py-32 bg-black relative z-10">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="bg-[#111] rounded-[40px] p-10 border border-white/10 relative overflow-hidden">
+                <!-- Background Grid -->
+                <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#836EF9 1px, transparent 1px); background-size: 20px 20px;"></div>
+                
+                <h2 class="text-3xl md:text-5xl font-bold text-center mb-12 relative z-10">Ethereum, but <span class="text-monad-primary">Scalable</span></h2>
+                
+                <div class="grid md:grid-cols-2 gap-8 relative z-10">
+                    <div class="p-6 rounded-2xl bg-white/5 border border-white/5">
+                        <div class="text-gray-500 font-mono mb-2">Ethereum</div>
+                        <div class="text-4xl font-bold mb-4 text-gray-400">15 TPS</div>
+                        <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-gray-600 w-[5%]"></div>
+                        </div>
+                        <p class="mt-4 text-sm text-gray-500">Sequential bottlenecks. High fees.</p>
+                    </div>
+                    
+                    <div class="p-6 rounded-2xl bg-monad-primary/10 border border-monad-primary/30">
+                        <div class="text-monad-primary font-mono mb-2">Monad</div>
+                        <div class="text-4xl font-bold mb-4 text-white">10,000 TPS</div>
+                        <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-monad-primary w-full shadow-[0_0_10px_#836EF9]"></div>
+                        </div>
+                        <p class="mt-4 text-sm text-gray-300">Parallel. Sub-cent fees. Instant.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 border-t border-white/5 text-center relative z-10 bg-[#0E0E12]">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+                <div class="w-6 h-6 bg-monad-primary rounded-full"></div>
+                <span class="font-bold">MONAD LABS</span>
+            </div>
+            <div class="flex gap-8 text-sm text-gray-500">
+                <a href="#" class="hover:text-monad-primary transition-colors">Twitter</a>
+                <a href="#" class="hover:text-monad-primary transition-colors">Discord</a>
+                <a href="#" class="hover:text-monad-primary transition-colors">Telegram</a>
+                <a href="#" class="hover:text-monad-primary transition-colors">GitHub</a>
+            </div>
+            <div class="text-gray-600 text-sm">
+                © 2024 Monad Labs.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts for Animation & 3D -->
+    <script>
+        // --- 1. THREE.JS BACKGROUND (The "Monad" visual feel) ---
+        const initThreeJS = () => {
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            
+            // Fog to blend into background
+            scene.fog = new THREE.FogExp2(0x0E0E12, 0.002);
+
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // Geometry: Particles forming a flow
+            const geometry = new THREE.BufferGeometry();
+            const count = 2000;
+            const posArray = new Float32Array(count * 3);
+            
+            for(let i = 0; i < count * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 60; 
+            }
+            
+            geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+            // Monad Purple Material
+            const material = new THREE.PointsMaterial({
+                size: 0.15,
+                color: 0x836EF9, // Monad Primary
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending
+            });
+
+            const particlesMesh = new THREE.Points(geometry, material);
+            scene.add(particlesMesh);
+
+            // Add a glowing core (Sphere)
+            const coreGeo = new THREE.IcosahedronGeometry(5, 1);
+            const coreMat = new THREE.MeshBasicMaterial({ 
+                color: 0x836EF9, 
+                wireframe: true,
+                transparent: true,
+                opacity: 0.1
+            });
+            const core = new THREE.Mesh(coreGeo, coreMat);
+            scene.add(core);
+
+            // Animation Loop
+            const animate = () => {
+                requestAnimationFrame(animate);
+                
+                // Rotate entire system slowly
+                particlesMesh.rotation.y += 0.001;
+                particlesMesh.rotation.x += 0.0005;
+                
+                core.rotation.x -= 0.002;
+                core.rotation.y -= 0.002;
+
+                // Interactive mouse movement (subtle)
+                const time = Date.now() * 0.0005;
+                scene.rotation.y = Math.sin(time) * 0.1;
+
+                renderer.render(scene, camera);
+            };
+
+            animate();
+
+            // Handle Resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        };
+
+        // --- 2. GSAP ANIMATIONS ---
+        const initAnimations = () => {
+            gsap.registerPlugin(ScrollTrigger);
+
+            // Remove loader
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 500);
+                
+                // Trigger Hero Animations after load
+                gsap.to('.hero-anim', {
+                    y: 0,
+                    opacity: 1,
+                    duration: 1,
+                    stagger: 0.2,
+                    ease: 'power3.out'
+                });
+            }, 1000);
+
+            // Feature Cards Reveal
+            gsap.utils.toArray('.feature-card').forEach((card, i) => {
+                gsap.to(card, {
+                    scrollTrigger: {
+                        trigger: card,
+                        start: "top 85%",
+                        toggleActions: "play none none reverse"
+                    },
+                    y: 0,
+                    opacity: 1,
+                    duration: 0.6,
+                    delay: i * 0.1
+                });
+            });
+
+            // Number Counter Animation
+            gsap.utils.toArray('.counter').forEach(counter => {
+                const target = counter.getAttribute('data-target');
+                gsap.to(counter, {
+                    scrollTrigger: {
+                        trigger: counter,
+                        start: "top 80%",
+                        once: true
+                    },
+                    innerHTML: target,
+                    duration: 2,
+                    snap: { innerHTML: 1 },
+                    delimiter: ",", 
+                    onUpdate: function() {
+                        this.targets()[0].innerHTML = Math.ceil(this.targets()[0].innerHTML).toLocaleString();
+                    }
+                });
+            });
+
+            // Navbar Blur on Scroll
+            window.addEventListener('scroll', () => {
+                const nav = document.getElementById('navbar');
+                if (window.scrollY > 50) {
+                    nav.classList.add('py-2');
+                    nav.classList.remove('py-4');
+                } else {
+                    nav.classList.add('py-4');
+                    nav.classList.remove('py-2');
+                }
+            });
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initThreeJS();
+            initAnimations();
+        });
+    </script>
+</body>
+</html>
